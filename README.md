@@ -1,5 +1,11 @@
-# mirandat.py
+# mirandat3
 
-I moved away from using windows to exclusively using Linux and Mac OS quite a long time ago. I had some old ICQ logs from when I was using Miranda IM and to be able to read them without having to install Miranda via wine or something like that, I wrote a little python script which takes a Miranda .dat database and extracts all the messages from it.
+The project has been forked from https://github.com/krig/mirandat.py
 
-I don't guarantee that it will work for any version of Miranda, but it worked for me. It should be fairly easy to modify so that it reads other versions as well.
+The original project is able to export history from Miranda IM dat-files.
+
+My goal is to make the following changes to the project:
+* port it to Python3
+* make sure it works with national encodings
+* make the output slightly more readable
+* add HTML export.
