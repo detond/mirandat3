@@ -54,7 +54,7 @@ def delatin(txt):
 
 def clipstr(txt, st=0, ln=0):
     i = st
-    while (i < ln) and (txt[i] != '\x00'):
+    while (i < ln) and (txt[i:i+1] != b'\x00'):
         i = i+1
     return txt[st:i]
 
@@ -155,17 +155,17 @@ class DBContactSettings(object):
     def _read_settings(self):
         settings = []
         cur = self.blob
-        cbName = unpack("<B", cur[0])[0]
+        cbName = unpack("<B", cur[0:1])[0]
         while cbName != 0:
             name = delatin(cur[1:(int(cbName)+1)])
-            dataType = unpack("<B", cur[cbName+1])[0]
+            dataType = unpack("<B", cur[cbName+1:cbName+2])[0]
             typename = self.dataTypeName(dataType)
             parsed = self._parse_setting(dataType, cur[cbName+2:])
             settings.append([name, parsed[0]])
             if parsed[1] > 0:
                 nbytes = parsed[1]
                 cur = cur[(1+cbName+1+nbytes):]
-                cbName = unpack("<B", cur[0])[0]
+                cbName = unpack("<B", cur[0:1])[0]
             else:
                 break # todo
         return settings
@@ -174,7 +174,7 @@ class DBContactSettings(object):
         if typ == self.DBVT_DELETED:
             return ("Deleted", 0)
         elif typ == self.DBVT_BYTE:
-            return (unpack("<B", data[0])[0], 1)
+            return (unpack("<B", data[0:1])[0], 1)
         elif typ == self.DBVT_WORD:
             return (unpack("<H", data[0:2])[0], 2)
         elif typ == self.DBVT_DWORD:
