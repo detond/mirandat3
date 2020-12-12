@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-#            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-#                    Version 2, December 2004
+
+# DO WHAT THE FUCK YOU WANT TO BUT IT'S NOT MY FAULT PUBLIC LICENSE
+# Version 1, October 2013
 #
 # Copyright (C) 2011 Kristoffer Gronlund <deceiver.g@gmail.com>
 #
@@ -8,10 +9,14 @@
 # copies of this license document, and changing it is allowed as long
 # as the name is changed.
 #
-#            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-#   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+# DO WHAT THE FUCK YOU WANT TO BUT IT'S NOT MY FAULT PUBLIC LICENSE
+# TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 #
-#  0. You just DO WHAT THE FUCK YOU WANT TO.
+# 0. You just DO WHAT THE FUCK YOU WANT TO.
+#
+# 1. Do not hold the author(s), creator(s), developer(s) or distributor(s)
+# liable for anything that happens or goes wrong with your use of the work.
+
 
 import os, sys
 from struct import unpack
