@@ -36,19 +36,19 @@ EventType_File = 1002
 
 def deunicode(txt):
     try:
-        return str(txt, encoding='utf-8').encode('utf-8')
+        return str(txt, encoding='utf-8')
     except:
         return repr(txt)
 
-def deunicode(txt):
+def deutf16(txt):
     try:
-        return str(txt, encoding='utf-16').encode('utf-8')
+        return str(txt, encoding='utf-16')
     except:
         return repr(txt)
 
 def delatin(txt):
     try:
-        return str(txt, encoding='latin').encode('utf-8')
+        return str(txt, encoding='latin')
     except:
         return repr(txt)
 
