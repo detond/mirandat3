@@ -42,23 +42,29 @@ class ContactFields(Enum):
     NICK = 'Nick'
     UIN = 'UIN'
 
-def deunicode(txt):
-    try:
-        return str(txt, encoding='utf-8')
-    except:
-        return repr(txt)
 
-def deutf16(txt):
-    try:
-        return str(txt, encoding='utf-16')
-    except:
-        return repr(txt)
+class Encoder:
+    encoding = 'latin'
 
-def delatin(txt):
-    try:
-        return str(txt, encoding='latin')
-    except:
-        return repr(txt)
+    @classmethod
+    def deunicode(cls, txt):
+        return cls._decode(txt, 'utf-8')
+
+    @classmethod
+    def deutf16(cls, txt):
+        return cls._decode(txt, 'utf-16')
+
+    @classmethod
+    def delatin(cls, txt):
+        return cls._decode(txt, cls.encoding)
+
+    @staticmethod
+    def _decode(txt, encoding):
+        try:
+            return str(txt, encoding=encoding)
+        except:
+            return repr(txt)
+
 
 def clipstr(txt, st=0, ln=0):
     i = st
@@ -113,9 +119,9 @@ class DBEvent(object):
         txt = clipstr(self.blob, st, ln)
 
         if self.flags & self.DBEF_UTF:
-            return deunicode(txt)
+            return Encoder.deunicode(txt)
         else:
-            return delatin(txt)
+            return Encoder.delatin(txt)
 
     def dir(self):
         return ">" if (self.flags & self.DBEF_SENT) else "<"
@@ -165,7 +171,7 @@ class DBContactSettings(object):
         cur = self.blob
         cbName = unpack("<B", cur[0:1])[0]
         while cbName != 0:
-            name = delatin(cur[1:(int(cbName)+1)])
+            name = Encoder.delatin(cur[1:(int(cbName)+1)])
             dataType = unpack("<B", cur[cbName+1:cbName+2])[0]
             typename = self.dataTypeName(dataType)
             parsed = self._parse_setting(dataType, cur[cbName+2:])
@@ -189,16 +195,16 @@ class DBContactSettings(object):
             return (unpack("<I", data[0:4])[0], 4)
         elif typ == self.DBVT_ASCIIZ:
             ln = unpack("<H", data[0:2])[0]
-            return (delatin(data[2:2+ln]), ln+2)
+            return (Encoder.delatin(data[2:2+ln]), ln+2)
         elif typ == self.DBVT_BLOB:
             ln = unpack("<H", data[0:2])[0]
             return (repr(data[2:]), ln+2)
         elif typ == self.DBVT_UTF8:
             ln = unpack("<H", data[0:2])[0]
-            return (deunicode(data[2:2+ln]), ln+2)
+            return (Encoder.deunicode(data[2:2+ln]), ln+2)
         elif typ == self.DBVT_WCHAR:
             ln = unpack("<H", data[0:2])[0]
-            return (deutf16(data[2:(2+ln)]), ln+2)
+            return (Encoder.deutf16(data[2:(2+ln)]), ln+2)
         else:
             return (repr(data), len(data))
 
@@ -355,6 +361,8 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("-f", "--file", dest="filename",
                         help="Miranda database file", metavar="FILE", required=True)
+    parser.add_argument("-e", "--encoding", dest="encoding",
+                        help="Encoding used in the database", metavar="CODEPAGE", default=Encoder.encoding)
     subparsers = parser.add_subparsers(help='Commands', required=True, dest='command')
     parser_ls = subparsers.add_parser('list', help='Print out all events as text', aliases=['ls'])
     parser_e = subparsers.add_parser('export', help='Export all exents to an SQLite DB', aliases=['e'])
@@ -366,6 +374,7 @@ def main():
 
     args = parser.parse_args()
     triggered_subparser = subparsers.choices[args.command]
+    Encoder.encoding = args.encoding
 
     dat = None
     with open(args.filename, 'rb') as f:
