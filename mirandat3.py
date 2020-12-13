@@ -327,15 +327,15 @@ def sqlite3_export(header, dat):
     next_contact = header.firstContact
     while next_contact != 0:
         c = DBContact(dat, next_contact)
-        cur.execute("insert into contacts(name) values (?)", (str(str(c.name), 'utf-8'),));
+        cur.execute("insert into contacts(name) values (?)", (str(c.name).encode('utf-8'),))
         c_id = None
         for row in cur.execute('select last_insert_rowid()'):
             print(row)
             c_id = row[0]
         cur.executemany("insert into settings(owner, name, value) values (?, ?, ?)",
-                        [(c_id, str(k, 'utf-8'), str(str(v), 'utf-8')) for k, v in list(c.settings.items())])
+                        [(c_id, k.encode('utf-8'), str(v).encode('utf-8')) for k, v in list(c.settings.items())])
         cur.executemany("insert into events(owner, timestamp, type, data) values (?, ?, ?, ?)",
-                        [(c_id, e.timestamp, str(e.typestr(), 'utf-8'), str(e.parse_blob(), 'utf-8')) for e in c.events])
+                        [(c_id, e.timestamp, e.typestr().encode('utf-8'), e.parse_blob().encode('utf-8')) for e in c.events])
         next_contact = c.next
 
     con.commit()
