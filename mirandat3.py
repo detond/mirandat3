@@ -18,10 +18,12 @@
 # liable for anything that happens or goes wrong with your use of the work.
 
 
-import os, sys
 from struct import unpack
 from datetime import datetime
 from functools import reduce
+from argparse import ArgumentParser
+from enum import Enum
+
 
 CONTACT_SIG = 0x43DECADE
 MODULENAME_SIG = 0x4DDECADE
@@ -33,6 +35,12 @@ EventType_Contacts = 2
 EventType_Added = 1000
 EventType_AuthRequest = 1001
 EventType_File = 1002
+
+class ContactFields(Enum):
+    FIRST_NAME = 'FirstName'
+    LAST_NAME = 'LastName'
+    NICK = 'Nick'
+    UIN = 'UIN'
 
 def deunicode(txt):
     try:
@@ -214,20 +222,20 @@ class DBContact(object):
 
         self.settings = self._read_settings(dat)
 
-        if 'FirstName' in self.settings:
-            self.firstName = self.settings['FirstName']
+        if ContactFields.FIRST_NAME.value in self.settings:
+            self.firstName = self.settings[ContactFields.FIRST_NAME.value]
         else:
             self.firstName = None
-        if 'LastName' in self.settings:
-            self.lastName = self.settings['LastName']
+        if ContactFields.LAST_NAME.value in self.settings:
+            self.lastName = self.settings[ContactFields.LAST_NAME.value]
         else:
             self.lastName = None
-        if 'Nick' in self.settings:
-            self.nick = self.settings['Nick']
+        if ContactFields.NICK.value in self.settings:
+            self.nick = self.settings[ContactFields.NICK.value]
         else:
             self.nick = None
-        if 'UIN' in self.settings:
-            self.uin = self.settings['UIN']
+        if ContactFields.UIN.value in self.settings:
+            self.uin = self.settings[ContactFields.UIN.value]
         else:
             self.uin = None
 
@@ -342,57 +350,60 @@ def sqlite3_export(header, dat):
     cur.close()
     con.close()
 
-from optparse import OptionParser
 
 def main():
-    parser = OptionParser()
-    parser.add_option("-f", "--file", dest="filename",
-                      help="miranda database file", metavar="FILE")
+    parser = ArgumentParser()
+    parser.add_argument("-f", "--file", dest="filename",
+                        help="Miranda database file", metavar="FILE", required=True)
+    subparsers = parser.add_subparsers(help='Commands', required=True, dest='command')
+    parser_ls = subparsers.add_parser('list', help='Print out all events as text', aliases=['ls'])
+    parser_e = subparsers.add_parser('export', help='Export all exents to an SQLite DB', aliases=['e'])
+    parser_c = subparsers.add_parser('contacts', help='List contacts (detailed)', aliases=['c'])
+    parser_cn = subparsers.add_parser('contact_names', help='List contacts (brief)', aliases=['cn'])
+    parser_fc = subparsers.add_parser('find_contact', help='Find contact by a given field', aliases=['fc'])
+    parser_fc.add_argument('by', choices=[element.value for element in ContactFields], help='Field name')
+    parser_fc.add_argument('value', help='Field value')
 
-    (options, args) = parser.parse_args()
-
-    if len(args) == 0 or options.filename is None:
-        print("Missing arguments.")
-        return
+    args = parser.parse_args()
+    triggered_subparser = subparsers.choices[args.command]
 
     dat = None
-    with open(options.filename, 'rb') as f:
+    with open(args.filename, 'rb') as f:
         dat = f.read()
     header = DBHeader(dat)
 
-    if args[0] == "contactnames":
+    if triggered_subparser == parser_cn:
         next_contact = header.firstContact
         while next_contact != 0:
             c = DBContact(dat, next_contact)
-            print(("%12s\t%12s\t%12s\t%12s"%(c.uin, c.nick, c.firstName, c.lastName)))
+            print("%12s\t%12s\t%12s\t%12s" % (c.uin, c.nick, c.firstName, c.lastName))
             next_contact = c.next
-    elif args[0] == "find_contact":
-        by = args[1]
-        val = args[2]
+    elif triggered_subparser == parser_fc:
+        by = args.by
+        val = args.value
         next_contact = header.firstContact
         while next_contact != 0:
             c = DBContact(dat, next_contact)
             if str(c.settings.get(by)) == val:
                 print(c)
             next_contact = c.next
-    elif args[0] == "contacts":
+    elif triggered_subparser == parser_c:
         next_contact = header.firstContact
         while next_contact != 0:
             c = DBContact(dat, next_contact)
             print(c)
             next_contact = c.next
-    elif args[0] == "ls":
+    elif triggered_subparser == parser_ls:
         next_contact = header.firstContact
         while next_contact != 0:
             c = DBContact(dat, next_contact)
             for e in c.events:
                 print(e)
             next_contact = c.next
-    elif args[0] == "export":
+    elif triggered_subparser == parser_e:
         sqlite3_export(header, dat)
     else:
         print("Unknown command")
 
 if __name__=="__main__":
     main()
-
