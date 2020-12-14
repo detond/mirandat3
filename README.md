@@ -7,5 +7,5 @@ The original project is able to export history from Miranda IM dat-files.
 My goal is to make the following changes to the project:
 * port it to Python3 :heavy_check_mark:
 * make sure it works with national encodings :heavy_check_mark:
-* make the output slightly more readable
+* make the output slightly more readable :heavy_check_mark:
 * add HTML export.
