@@ -16,18 +16,20 @@
 #
 # 1. Do not hold the author(s), creator(s), developer(s) or distributor(s)
 # liable for anything that happens or goes wrong with your use of the work.
-
-
+import os
 from struct import unpack
 from datetime import datetime
 from functools import reduce
 from argparse import ArgumentParser
 from enum import Enum
+from contextlib import redirect_stdout
 
 
 CONTACT_SIG = 0x43DECADE
 MODULENAME_SIG = 0x4DDECADE
 EVENT_SIG = 0x45DECADE
+SEPARATOR_LENGTH = 39
+SELF_NAME = 'me' # default sender name for outgoing messages
 
 EventType_Message = 0
 EventType_Url = 1
@@ -35,6 +37,7 @@ EventType_Contacts = 2
 EventType_Added = 1000
 EventType_AuthRequest = 1001
 EventType_File = 1002
+
 
 class ContactFields(Enum):
     FIRST_NAME = 'FirstName'
@@ -123,12 +126,20 @@ class DBEvent(object):
         else:
             return Encoder.delatin(txt)
 
+    def is_sent(self):
+        return self.flags & self.DBEF_SENT
+
     def dir(self):
-        return ">" if (self.flags & self.DBEF_SENT) else "<"
+        return ">" if self.is_sent() else "<"
 
     def __str__(self):
         txt = self.parse_blob()
-        return "%s %s (%s) %s: " % (self.dir(), self.name(), self.timestamp, self.typestr()) + txt
+        if self.type == EventType_Message:
+            direction = self.dir().join(('-' * (SEPARATOR_LENGTH - 1), '-'))
+            name = SELF_NAME if self.is_sent() else self.name()
+            return "%s\n%s (%s)\n%s\n" % (direction, name, self.timestamp, txt)
+        else:
+            return "%s %s (%s) %s: " % (self.dir(), self.name(), self.timestamp, self.typestr()) + txt
 
 class DBContactSettings(object):
     DBVT_DELETED = 0
@@ -290,6 +301,19 @@ class DBContact(object):
             s += ("%12s:\t%12s\n"%(str(k), str(v)))
         return s
 
+    def summary(self):
+        return "UIN: %12s\tName: %s" % (self.uin, self.settings.get('MyHandle', self.name))
+
+    def filename(self, extension='txt'):
+        name = self.name if self.uin == self.name else "%s (%s)" % (self.name, self.uin)
+        return '.'.join((str(name), extension))
+
+    def print_events(self, header=False):
+        if header:
+            print(self.summary())
+            print('=' * SEPARATOR_LENGTH)
+        for e in self.events:
+            print(e)
 
 class DBHeader(object):
     def __init__(self, dat):
@@ -305,10 +329,10 @@ class DBHeader(object):
         self.user = header[7]
         self.firstModuleName = header[8]
 
-def sqlite3_export(header, dat):
+def sqlite3_export(header, dat, filename):
     import sqlite3
 
-    con = sqlite3.connect("export.db3")
+    con = sqlite3.connect(filename)
 
     cur = con.cursor()
 
@@ -359,13 +383,17 @@ def sqlite3_export(header, dat):
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("-f", "--file", dest="filename",
-                        help="Miranda database file", metavar="FILE", required=True)
-    parser.add_argument("-e", "--encoding", dest="encoding",
-                        help="Encoding used in the database", metavar="CODEPAGE", default=Encoder.encoding)
+    parser.add_argument('-f', '--file', dest='filename',
+                        help='Miranda database file', metavar='FILE', required=True)
+    parser.add_argument('-e', '--encoding', dest='encoding',
+                        help='Encoding used in the database', metavar='CODEPAGE', default=Encoder.encoding)
     subparsers = parser.add_subparsers(help='Commands', required=True, dest='command')
     parser_ls = subparsers.add_parser('list', help='Print out all events as text', aliases=['ls'])
+    parser_ls.add_argument('-s', '--split', dest='split',
+                           help='Split chats into separate files', metavar='FOLDER')
     parser_e = subparsers.add_parser('export', help='Export all exents to an SQLite DB', aliases=['e'])
+    parser_e.add_argument('-d', '--database-filename', dest='database',
+                          help='Database filename', default='export.db3')
     parser_c = subparsers.add_parser('contacts', help='List contacts (detailed)', aliases=['c'])
     parser_cn = subparsers.add_parser('contact_names', help='List contacts (brief)', aliases=['cn'])
     parser_fc = subparsers.add_parser('find_contact', help='Find contact by a given field', aliases=['fc'])
@@ -404,13 +432,18 @@ def main():
             next_contact = c.next
     elif triggered_subparser == parser_ls:
         next_contact = header.firstContact
+        directory = args.split
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory)
         while next_contact != 0:
             c = DBContact(dat, next_contact)
-            for e in c.events:
-                print(e)
+            if directory:
+                with open(os.path.join(directory, c.filename()), 'w') as f:
+                    with redirect_stdout(f):
+                        c.print_events(header=True)
             next_contact = c.next
     elif triggered_subparser == parser_e:
-        sqlite3_export(header, dat)
+        sqlite3_export(header, dat, args.database)
     else:
         print("Unknown command")
 
