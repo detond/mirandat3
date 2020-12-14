@@ -384,18 +384,20 @@ def sqlite3_export(header, dat, filename):
 
 
 def main():
+    global SELF_NAME
     parser = ArgumentParser()
-    parser.add_argument('-f', '--file', dest='filename',
-                        help='Miranda database file', metavar='FILE', required=True)
+    parser.add_argument(dest='filename', help='Miranda database file')
     parser.add_argument('-e', '--encoding', dest='encoding',
                         help='Encoding used in the database', metavar='CODEPAGE', default=Encoder.encoding)
     subparsers = parser.add_subparsers(help='Commands', required=True, dest='command')
     parser_ls = subparsers.add_parser('list', help='Print out all events as text', aliases=['ls'])
     parser_ls.add_argument('-s', '--split', dest='split',
                            help='Split chats into separate files', metavar='FOLDER')
+    parser_ls.add_argument('-m', '--my-name', dest='self_name', default=SELF_NAME,
+                           help='Provide sender name for outgoing messages in chatlogs', metavar='NAME')
     parser_e = subparsers.add_parser('export', help='Export all exents to an SQLite DB', aliases=['e'])
-    parser_e.add_argument('-d', '--database-filename', dest='database',
-                          help='Database filename', default='export.db3')
+    parser_e.add_argument('-f', '--filename', dest='database',
+                          help='Database filename', default='export')
     parser_c = subparsers.add_parser('contacts', help='List contacts (detailed)', aliases=['c'])
     parser_cn = subparsers.add_parser('contact_names', help='List contacts (brief)', aliases=['cn'])
     parser_fc = subparsers.add_parser('find_contact', help='Find contact by a given field', aliases=['fc'])
@@ -437,15 +439,18 @@ def main():
         directory = args.split
         if directory and not os.path.exists(directory):
             os.makedirs(directory)
+        SELF_NAME = args.self_name
         while next_contact != 0:
             c = DBContact(dat, next_contact)
             if directory:
                 with open(os.path.join(directory, c.filename()), 'w') as f:
                     with redirect_stdout(f):
                         c.print_events(header=True)
+            else:
+                c.print_events(header=True)
             next_contact = c.next
     elif triggered_subparser == parser_e:
-        sqlite3_export(header, dat, args.database)
+        sqlite3_export(header, dat, '.'.join([args.database, 'db3']))
     else:
         print("Unknown command")
 
