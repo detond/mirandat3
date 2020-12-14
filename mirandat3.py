@@ -29,6 +29,7 @@ CONTACT_SIG = 0x43DECADE
 MODULENAME_SIG = 0x4DDECADE
 EVENT_SIG = 0x45DECADE
 SEPARATOR_LENGTH = 39
+ILLEGAL_FILENAME_CHARACTERS = '<>:"/\|?*'
 SELF_NAME = 'me' # default sender name for outgoing messages
 
 EventType_Message = 0
@@ -306,7 +307,8 @@ class DBContact(object):
 
     def filename(self, extension='txt'):
         name = self.name if self.uin == self.name else "%s (%s)" % (self.name, self.uin)
-        return '.'.join((str(name), extension))
+        sanitized_name = ''.join([c for c in str(name) if c not in ILLEGAL_FILENAME_CHARACTERS]).strip()
+        return '.'.join((sanitized_name, extension))
 
     def print_events(self, header=False):
         if header:
