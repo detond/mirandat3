@@ -1,3 +1,6 @@
+Added a fix for writing special characters as /u200e that was throwing exceptions in master branch.
+
+--------------------------------------------------------------------
 # mirandat3
 
 The project has been forked from https://github.com/krig/mirandat.py
