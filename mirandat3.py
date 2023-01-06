@@ -315,7 +315,10 @@ class DBContact(object):
             print(self.summary())
             print('=' * SEPARATOR_LENGTH)
         for e in self.events:
-            print(e)
+            try:
+                print(e)
+            except:
+                print("exception occured")
 
 class DBHeader(object):
     def __init__(self, dat):
